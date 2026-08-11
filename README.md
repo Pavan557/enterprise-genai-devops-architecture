@@ -6,7 +6,7 @@
 
 ![GCP](https://img.shields.io/badge/GCP-4285F4?style=for-the-badge&logo=google-cloud&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
-![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform_1.5.7-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm_v3-0F1689?style=for-the-badge&logo=helm&logoColor=white)
 ![Harness](https://img.shields.io/badge/Harness_IACM_--_CD-000000?style=for-the-badge&logo=harness&logoColor=white)
 ![HashiCorp Vault](https://img.shields.io/badge/HashiCorp_Vault-000000?style=for-the-badge&logo=vault&logoColor=white)
@@ -26,7 +26,7 @@ Designed with strict separation of concerns, zero-trust security governance, mul
 
 ---
 
-## 🏛️ End-to-End System Topology
+## 🏛️ System Topology
 
 ```
                                       ┌────────────────────────────────────────────────────────┐
@@ -53,6 +53,21 @@ Designed with strict separation of concerns, zero-trust security governance, mul
                                                   │ • Model Context Protocol (MCP)│
                                                   └───────────────────────────────┘
 ```
+
+---
+
+## 🏗️ Complete Unified Terraform Infrastructure Stack (IaC)
+
+> [!IMPORTANT]
+> **Complete End-to-End Infrastructure-as-Code**: Under the hood, this platform maintains a **single, unified Terraform stack** that provisions 100% of the underlying GCP infrastructure and CI/CD pipelines in a fully parameterized, repeatable manner.
+
+### What the Terraform Stack Provisions Under the Hood:
+- **GKE Cluster & Node Pools (`gke_cluster/`)**: Control plane, VPC-native networking, CPU node pool, dedicated GPU pool (NVIDIA L4/T4), Spot preemptible pool, and Node Auto-Provisioning (NAP).
+- **Multi-Database Layer (`databases/`)**: Cloud SQL PostgreSQL 15 instances, `pgvector` extensions, HNSW cosine index, and DDL schema migration runners.
+- **Dynamic Service Account Engine (`service_accounts/`)**: Template-driven GCP Service Account engine provisioning ~50+ IAM role-bound accounts dynamically without code modifications.
+- **Kubernetes Namespace & Secrets (`namespace/`)**: K8s namespace (`prod-apps`), central Vault secrets integration, GCS document storage buckets, and private DNS zones (`.ai.internal.ggl.cloud`).
+- **GKE Workload Identity (`workload_identity/`)**: Explicit IAM bindings connecting Kubernetes Service Accounts (`k8s-sa-{service}`) to GCP Service Accounts via `iam.gke.io/gcp-service-account`.
+- **Automated IACM Pipelines**: Standardized 3-stage Harness IACM pipelines executing `init` $\rightarrow$ `plan` $\rightarrow$ `OPA Policy Scan` $\rightarrow$ `apply` across isolated workspaces (`<ENV>_<RESOURCE>_workspace`).
 
 ---
 
