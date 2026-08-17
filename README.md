@@ -63,12 +63,12 @@ Designed with strict separation of concerns, zero-trust security governance, mul
 
 ### What the Terraform Stack Provisions Under the Hood:
 - **GKE Cluster & Tiered Node Pools**: Control plane, VPC-native networking, CPU node pool, dedicated GPU pool (NVIDIA L4/T4), Spot preemptible pool, and Node Auto-Provisioning (NAP).
-- **Multi-Instance Cloud SQL Topology**: 3 workload-isolated database instances (REST Transactional DB, Vector Search DB with `pgvector` & HNSW indexing, and Analytics/Audit DB).
-- **HashiCorp Vault Dynamic Secret Wiring**: Zero-Trust secret integration automatically writing dynamic database credentials, GKE endpoints, and SA emails to Vault paths (`secret/data/ggl/prod/...`).
+- **Multi-Instance Cloud SQL Topology**: 3 workload-isolated database instances (REST Transactional DB, Vector Search DB with `pgvector` & HNSW indexing, and Analytics/Audit DB) with dynamic pipeline targeting (`TARGET_DB`).
+- **HashiCorp Vault Dynamic Submodule Secret Wiring**: Zero-Trust secret integration automatically writing dynamic database credentials, GKE endpoints, and SA emails directly to submodule Vault paths (`secret/data/ggl/prod/databases/<submodule>`).
 - **Dynamic Service Account Engine**: Template-driven GCP Service Account engine provisioning ~50+ IAM role-bound accounts dynamically without code modifications.
-- **Kubernetes Namespace & Vault Secrets**: K8s namespace (`prod-apps`), central Vault dynamic secrets consumption, GCS document storage buckets, and private DNS zones (`.ai.internal.ggl.cloud`).
+- **Kubernetes Namespace & Vault Secrets**: K8s namespace (`prod-apps`), dynamic Vault secret consumption reading directly from submodule Vault paths, GCS document storage buckets, and private DNS zones (`.ai.internal.ggl.cloud`).
 - **GKE Workload Identity**: Explicit IAM bindings connecting Kubernetes Service Accounts (`k8s-sa-{service}`) to GCP Service Accounts via `iam.gke.io/gcp-service-account`.
-- **Automated IACM Pipelines**: Standardized 3-stage Harness IACM pipelines executing `init` $\rightarrow$ `plan` $\rightarrow$ `OPA Policy Scan` $\rightarrow$ `apply` across isolated workspaces (`<ENV>_<RESOURCE>_workspace`).
+- **Automated IACM Pipelines**: Standardized 3-stage Harness IACM pipelines executing `init` $\rightarrow$ `plan` $\rightarrow$ `OPA Policy Scan` $\rightarrow$ `apply` across isolated workspaces (`<ENV>_<RESOURCE>_<TARGET_DB>_workspace`).
 
 ---
 
@@ -85,7 +85,7 @@ Designed with strict separation of concerns, zero-trust security governance, mul
 
 ### 3. Workload-Isolated Multi-Instance Database Topology
 - **REST Transactional Cloud SQL**: Dedicated PostgreSQL 15 instance (`e2-standard-4`) for microservices (`payment`, `user`, `order`).
-- **Vector Search Cloud SQL**: Dedicated instance (`db-custom-4-16384`) with native `pgvector` extensions and **HNSW Cosine Vector Indexing** (`vector(1536)`).
+- **Vector Search Cloud SQL**: Dedicated instance (`db-custom-4-16384`) with native `pgvector` extensions, **`maintenance_work_mem = 1GB`**, **`shared_buffers = 4GB`**, and **HNSW Cosine Vector Indexing** (`vector(1536)`).
 - **Analytics & Audit Cloud SQL**: Dedicated instance (`db-custom-8-32768`) for telemetry & audit log archiving.
 - **Redis Semantic Caching**: Caches identical prompt responses in-memory, returning results in **<10ms** and cutting LLM token API spending by up to 90%.
 
