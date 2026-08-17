@@ -62,40 +62,41 @@ Designed with strict separation of concerns, zero-trust security governance, mul
 > **Complete End-to-End Infrastructure-as-Code**: Under the hood, this platform maintains a **single, unified Terraform stack** that provisions 100% of the underlying GCP infrastructure and CI/CD pipelines in a fully parameterized, repeatable manner.
 
 ### What the Terraform Stack Provisions Under the Hood:
-- **GKE Cluster & Node Pools (`gke_cluster/`)**: Control plane, VPC-native networking, CPU node pool, dedicated GPU pool (NVIDIA L4/T4), Spot preemptible pool, and Node Auto-Provisioning (NAP).
-- **Multi-Database Layer (`databases/`)**: Cloud SQL PostgreSQL 15 instances, `pgvector` extensions, HNSW cosine index, and DDL schema migration runners.
-- **Dynamic Service Account Engine (`service_accounts/`)**: Template-driven GCP Service Account engine provisioning ~50+ IAM role-bound accounts dynamically without code modifications.
-- **Kubernetes Namespace & Secrets (`namespace/`)**: K8s namespace (`prod-apps`), central Vault secrets integration, GCS document storage buckets, and private DNS zones (`.ai.internal.ggl.cloud`).
-- **GKE Workload Identity (`workload_identity/`)**: Explicit IAM bindings connecting Kubernetes Service Accounts (`k8s-sa-{service}`) to GCP Service Accounts via `iam.gke.io/gcp-service-account`.
+- **GKE Cluster & Tiered Node Pools**: Control plane, VPC-native networking, CPU node pool, dedicated GPU pool (NVIDIA L4/T4), Spot preemptible pool, and Node Auto-Provisioning (NAP).
+- **Multi-Instance Cloud SQL Topology**: 3 workload-isolated database instances (REST Transactional DB, Vector Search DB with `pgvector` & HNSW indexing, and Analytics/Audit DB).
+- **HashiCorp Vault Dynamic Secret Wiring**: Zero-Trust secret integration automatically writing dynamic database credentials, GKE endpoints, and SA emails to Vault paths (`secret/data/ggl/prod/...`).
+- **Dynamic Service Account Engine**: Template-driven GCP Service Account engine provisioning ~50+ IAM role-bound accounts dynamically without code modifications.
+- **Kubernetes Namespace & Vault Secrets**: K8s namespace (`prod-apps`), central Vault dynamic secrets consumption, GCS document storage buckets, and private DNS zones (`.ai.internal.ggl.cloud`).
+- **GKE Workload Identity**: Explicit IAM bindings connecting Kubernetes Service Accounts (`k8s-sa-{service}`) to GCP Service Accounts via `iam.gke.io/gcp-service-account`.
 - **Automated IACM Pipelines**: Standardized 3-stage Harness IACM pipelines executing `init` $\rightarrow$ `plan` $\rightarrow$ `OPA Policy Scan` $\rightarrow$ `apply` across isolated workspaces (`<ENV>_<RESOURCE>_workspace`).
 
 ---
 
-## 🔥 Key Enterprise Innovations & Reliability Capabilities
+## 🔥 Key Enterprise Innovations & High Availability (HA) Capabilities
 
 ### 1. Multi-LLM Gateway Resilience & Automated Circuit Breakers
 - **Intelligent Fallback Hierarchy**: OpenAI (`gpt-4o`) $\rightarrow$ Anthropic (`claude-3-5-sonnet`) $\rightarrow$ Google (`gemini-1.5-pro`) $\rightarrow$ Local GPU Inference (`vllm` running `llama-3.1-70b`).
 - **Circuit Breaker Failover**: If commercial APIs experience timeouts (>5000ms) or `5xx` errors, the gateway automatically trips circuit breakers and reroutes traffic with **zero application downtime**.
 
-### 2. High-Performance Vector Database & Data Pipeline
-- **Cloud SQL `pgvector` Engine**: PostgreSQL with native `pgvector` extensions and **HNSW Cosine Vector Indexing** (`vector(1536)`).
-- **Distributed Spark StatefulSet Cluster**: Dedicated master/worker cluster for high-throughput batch document parsing and vector embedding generation.
+### 2. High Availability (HA) Multi-AZ Topology & Resiliency
+- **Multi-AZ `podAntiAffinity`**: Pod replicas are scheduled across distinct availability zones (`topology.kubernetes.io/zone`) to prevent single-zone cloud outages from disrupting services.
+- **Dual-Metric HPA & Stabilization**: HPA scales on dual metrics (CPU @ 70% + Memory @ 75%) with a 300s scale-down stabilization window to eliminate metric flapping.
+- **Pod Disruption Budgets (PDBs)**: Configured with `minAvailable: 1` to guarantee zero downtime during GKE cluster upgrades and node drains.
+
+### 3. Workload-Isolated Multi-Instance Database Topology
+- **REST Transactional Cloud SQL**: Dedicated PostgreSQL 15 instance (`e2-standard-4`) for microservices (`payment`, `user`, `order`).
+- **Vector Search Cloud SQL**: Dedicated instance (`db-custom-4-16384`) with native `pgvector` extensions and **HNSW Cosine Vector Indexing** (`vector(1536)`).
+- **Analytics & Audit Cloud SQL**: Dedicated instance (`db-custom-8-32768`) for telemetry & audit log archiving.
 - **Redis Semantic Caching**: Caches identical prompt responses in-memory, returning results in **<10ms** and cutting LLM token API spending by up to 90%.
 
-### 3. Dual Telemetry Engine & Deep LLM Evaluation
+### 4. Dual Telemetry Engine & Deep LLM Evaluation
 - **Error Observability**: OpenTelemetry Collector streams gRPC OTLP traces and routes exception spans directly to **Sentry** for real-time alerting.
 - **GenAI Tracing**: Integrated **LangSmith** engine tracks prompt/response executions, RAG context precision/recall, and token cost telemetry per department.
 
-### 4. Zero-Trust Security & Automated OPA Governance
+### 5. Zero-Trust Security & Automated OPA Governance
 - **Open Policy Agent (OPA)**: Automated Rego security policies evaluated during infrastructure pipelines, enforcing strict GKE Workload Identity bindings before deployment.
 - **NeMo Safety Guardrails Proxy**: Intercepts requests to filter prompt injection attacks, jailbreak attempts, toxic content, and PII leaks.
 - **HashiCorp Vault Integration**: Auto-injects and rotates API keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) directly in pod memory with zero static secrets.
-
-### 5. Multi-Tier GKE Compute & Cost Optimization
-- **Baseline CPU Pool**: High-availability nodes for core microservices.
-- **Dedicated GPU Pool (NVIDIA L4 / T4)**: Autoscaling GPU nodes for local model inference and embedding processing.
-- **Preemptible Spot Pool**: Cuts compute costs by ~70% for background batch indexing workloads.
-- **Node Auto-Provisioning (NAP)**: Non-production environments scale idle node pools to **0 nodes** overnight and on weekends, achieving **up to 90% cloud cost reduction**.
 
 ---
 
