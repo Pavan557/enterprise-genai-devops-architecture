@@ -22,7 +22,7 @@
 
 This showcase repository presents the architectural blueprint for a **Fortune-500 Standard Enterprise GenAI Platform**. Engineered on Google Kubernetes Engine (GKE), HashiCorp Vault, Harness IACM/CD, and OpenTelemetry, this platform provides the foundational cloud infrastructure to deploy, scale, and secure complex **Generative AI, Agentic AI, RAG (Retrieval-Augmented Generation), and Multi-LLM workloads**.
 
-Designed with strict separation of concerns, zero-trust security governance, multi-AZ resilience, and automated cost optimization, this architecture allows enterprise engineering teams to onboard and deploy new custom AI agents in under **5 minutes**.
+Designed with strict separation of concerns, zero-trust security governance, keyless OIDC authentication, multi-AZ resilience, and automated cost optimization, this architecture allows enterprise engineering teams to onboard and deploy new custom AI agents in under **5 minutes**.
 
 ---
 
@@ -64,6 +64,7 @@ Designed with strict separation of concerns, zero-trust security governance, mul
 ### What the Terraform Stack Provisions Under the Hood:
 - **GKE Cluster & Tiered Node Pools**: Control plane, VPC-native networking, CPU node pool, dedicated GPU pool (NVIDIA L4/T4), Spot preemptible pool, and Node Auto-Provisioning (NAP).
 - **Multi-Instance Cloud SQL Topology**: 3 workload-isolated database instances (REST Transactional DB, Vector Search DB with `pgvector` & HNSW indexing, and Analytics/Audit DB) with dynamic pipeline targeting (`TARGET_DB`).
+- **Keyless OIDC Workload Identity Connectors**: Pipelines authenticate keylessly via OIDC Workload Identity Federation impersonating `sa-devops-admin` with zero static JSON keys.
 - **HashiCorp Vault Dynamic Submodule Secret Wiring**: Zero-Trust secret integration automatically writing dynamic database credentials, GKE endpoints, and SA emails directly to submodule Vault paths (`secret/data/ggl/prod/databases/<submodule>`).
 - **Dynamic Service Account Engine**: Template-driven GCP Service Account engine provisioning ~50+ IAM role-bound accounts dynamically without code modifications.
 - **Kubernetes Namespace & Vault Secrets**: K8s namespace (`prod-apps`), dynamic Vault secret consumption reading directly from submodule Vault paths, GCS document storage buckets, and private DNS zones (`.ai.internal.ggl.cloud`).
